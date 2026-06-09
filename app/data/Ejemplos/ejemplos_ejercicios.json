@@ -1,0 +1,283 @@
+{
+  "conversion_segundos": {
+    "tema": "Tema 1 -> Composición Secuencial: Convertir segundos a días, horas, minutos y segundos",
+    "codigo_correcto": "Leer (n);\nd <- n div 86400; rd <- n mod 86400;\nh <- rd div 3600; rh <- rd mod 3600;\nm <- rh div 60; s <- rh mod 60;\nEscribir (d, h, m, s);",
+    "explicacion": "Este algoritmo utiliza una composición secuencial. Descompone el problema calculando primero los días con división entera ('div') y guardando el resto ('mod') para usarlos en cascada y calcular las horas, luego los minutos y finalmente los segundos.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Usar división real en lugar de división entera",
+        "codigo": "Leer (n);\nd <- n / 86400; rd <- n mod 86400;\n...",
+        "error": "En el léxico algorítmico, '/' es la división real y 'div' es la entera. Si usas '/', 'd' almacenará decimales (ej: 1.5 días). Esto rompe la lógica de extraer unidades completas y provocará un error de tipo, ya que 'd' está declarada como Entero."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "No usar las variables de resto intermedio",
+        "codigo": "Leer (n);\nd <- n div 86400;\nh <- n div 3600;\n...",
+        "error": "Si divides siempre el valor inicial 'n', estarás calculando los días totales y las horas totales absolutas. Es obligatorio usar el resto de los días ('rd') para calcular las horas que 'sobran' tras quitar los días completos."
+      }
+    ]
+  },
+  "maximo_dos_numeros": {
+    "tema": "Tema 1 -> Análisis de Casos (Composición Condicional): Calcular el máximo de dos números",
+    "codigo_correcto": "Leer(x, y);\nSEGÚN x, y\n    x >= y : z <- x;\n    x < y  : z <- y;\nFIN_SEGÚN;\nEscribir (z);",
+    "explicacion": "Utiliza la composición condicional 'SEGÚN'. Particiona el dominio de datos en dos subdominios excluyentes que cubren todas las posibilidades. Si x es mayor o igual, el máximo es x; de lo contrario, es y.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Olvidar el caso en el que son iguales",
+        "codigo": "SEGÚN x, y\n    x > y : z <- x;\n    x < y : z <- y;\nFIN_SEGÚN;",
+        "error": "Es un error de especificación grave. La unión de los subproblemas debe cubrir todas las posibilidades. Si un alumno introduce x=5 e y=5, ninguna condición se cumple y el programa fallará o no asignará valor a 'z'."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Escribir la asignación al revés",
+        "codigo": "SEGÚN x, y\n    x >= y : x <- z;\n    x < y  : y <- z;\nFIN_SEGÚN;",
+        "error": "Error de sintaxis en la acción primitiva de asignación. La sintaxis correcta es '<variable> <- <expresión>'. Estás intentando asignar el contenido vacío de 'z' a los datos originales, perdiendo la información."
+      }
+    ]
+  },
+  "ordenar_tres_numeros": {
+    "tema": "Tema 1 -> Análisis de Casos Complejo: Ordenar tres enteros diferentes",
+    "codigo_correcto": "Leer (a, b, c);\nSEGÚN a, b, c\n    a<b<c: p <- a; s <- b; t <- c;\n    a<c<b: p <- a; s <- c; t <- b;\n    b<a<c: p <- b; s <- a; t <- c;\n    b<c<a: p <- b; s <- c; t <- a;\n    c<b<a: p <- c; s <- b; t <- a;\n    c<a<b: p <- c; s <- a; t <- b;\nFIN_SEGÚN;\nEscribir (p, s, t);",
+    "explicacion": "Dado que las variables deben ser diferentes, la solución debe contemplar todas las permutaciones posibles de a, b y c, existiendo 6 combinaciones (3 factorial).",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Casos incompletos o solapados",
+        "codigo": "SEGÚN a, b, c\n    a<b<c: p<-a; s<-b; t<-c;\n    a<c<b: p<-a; s<-c; t<-b;\n    b<a<c: p<-b; s<-a; t<-c;\n    c<b<a: p<-c; s<-b; t<-a;\nFIN_SEGÚN;",
+        "error": "Como indica la teoría sobre posibles errores en el análisis de casos, te has olvidado de cubrir casos. Faltan las permutaciones 'b<c<a' y 'c<a<b'. El programa fallaría de forma impredecible dependiendo de los datos introducidos."
+      }
+    ]
+  },
+  "intercambio_variables": {
+    "tema": "Tema 2 -> Parametrización y Léxico local: Acción para intercambiar dos variables",
+    "codigo_correcto": "LÉXICO\n    t: entero;\nALGORITMO\n    t <- x; x <- y; y <- t\nFIN;",
+    "explicacion": "Este algoritmo define una acción parametrizada donde 'x' e 'y' son parámetros de tipo 'dato-resultado'. Utiliza una variable 't' que pertenece a su léxico local para salvaguardar temporalmente el valor de 'x' antes de sobrescribirlo.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Intercambio directo sin variable local auxiliar",
+        "codigo": "LÉXICO\nALGORITMO\n    x <- y; y <- x\nFIN;",
+        "error": "Es un error lógico fundamental. La asignación es destructiva. Al hacer 'x <- y', se pierde el valor original de 'x'. Cuando la siguiente instrucción hace 'y <- x', simplemente está copiando el valor de 'y' sobre sí mismo. Ambas variables terminarán valiendo lo que valía 'y' inicialmente."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Orden de asignación incorrecto con la variable auxiliar",
+        "codigo": "LÉXICO\n    t: entero;\nALGORITMO\n    x <- t; y <- x; t <- y\nFIN;",
+        "error": "La variable local 't' no tiene ningún valor inicial útil. Al asignar 't' a 'x' en el primer paso, estamos introduciendo basura en la variable 'x', perdiendo definitivamente los datos que queríamos intercambiar."
+      }
+    ]
+  },
+  "funcion_max3": {
+    "tema": "Tema 2 -> Funciones: Calcular el máximo de tres números mediante composición funcional",
+    "codigo_correcto": "Max3: Función (x, y, z: entero) -> entero;\nAlgoritmo\n    Max3 <- Max2(x, Max2(y, z))\nFIN;",
+    "explicacion": "A diferencia de las acciones, las funciones calculan un único resultado que se asigna al propio nombre de la función ('Max3'). Este ejemplo ilustra la composición funcional, resolviendo un problema apoyándose en otra función más sencilla ('Max2').",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Intentar usar el nombre de la función como variable de lectura",
+        "codigo": "Max3: Función (x, y, z: entero) -> entero;\nAlgoritmo\n    Max3 <- Max2(x, y);\n    Max3 <- Max2(Max3, z)\nFIN;",
+        "error": "Error conceptual sobre la definición de función. Según la teoría, el identificador del nombre de la función dentro de su propio algoritmo se considera una variable de 'sólo escritura'. No puedes pasar 'Max3' como parámetro a otra función antes de que haya terminado de ejecutarse."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "No asignar el resultado al nombre de la función",
+        "codigo": "Max3: Función (x, y, z: entero) -> entero;\nLÉXICO\n    resultado: entero;\nAlgoritmo\n    resultado <- Max2(x, Max2(y, z))\nFIN;",
+        "error": "Error en el mecanismo de retorno. Una función produce un único resultado que DEBE ser asignado explícitamente al nombre de la función como último paso. Al guardarlo en la variable local 'resultado', la función terminará pero no devolverá nada al programa principal."
+      }
+    ]
+  },
+  "tabla_dias_anio": {
+    "tema": "Tema 2 -> Estructuración de información (Tablas): Calcular el día del año",
+    "codigo_correcto": "LÉXICO\n    día = TIPO entero [1..31];\n    mes = TIPO entero[1..12];\n    fecha = TIPO <d: día; m: mes>\n    correc : TABLA [mes] de entero =[0, 1, -1, 0, 0, 1, 1, 2, 3, 3, 4, 4];\n    x : Fecha;\nALGORITMO\n    Leer (x);\n    Escribir (30 * (x.m - 1) + x.d + correcx.m )\nFIN.",
+    "explicacion": "Este algoritmo utiliza una Tabla como estructura de acceso directo. La tabla 'correc' almacena las correcciones para cada mes respecto a un mes ideal de 30 días. El índice de acceso a la tabla está determinado por el tipo ordinal 'mes'.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Acceder a la tabla con un índice fuera de rango",
+        "codigo": "...\nALGORITMO\n    Leer (x);\n    Escribir (30 * (x.m - 1) + x.d + correc13 )\nFIN.",
+        "error": "El dominio (intervalo ordinal) de la tabla 'correc' está definido estrictamente para el tipo 'mes' [1..12]. Intentar acceder a un índice fuera de este dominio (como 13 o 0) provocará un error crítico de ejecución (Out of Bounds)."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Confundir el acceso a tabla con el acceso a elementos de un registro",
+        "codigo": "...\nALGORITMO\n    Leer (x);\n    Escribir (30 * (x.m - 1) + x.d + correc.x.m )\nFIN.",
+        "error": "Error de sintaxis y concepto. A los elementos de un registro (producto de tipos) se accede con el punto (ej: 'x.m'). A los elementos de una tabla se accede mediante el mecanismo de indexación, colocando el índice a la derecha del nombre (en la notación del PDF suele ponerse con subíndices o entre corchetes, ej: 'correc[x.m]' o 'correc_x.m')."
+      }
+    ]
+  },
+  "media_calificaciones": {
+    "tema": "Tema 3 -> Composición MIENTRAS: Calcular el valor medio de calificaciones",
+    "codigo_correcto": "suma <- 0; numElem <- 0; Leer (nota);\nMIENTRAS nota >= 0 HACER\n    suma <- suma + nota; numElem <- numElem + 1;\n    Leer (nota)\nFIN_MIENTRAS;\nSI numElem > 0 ENTONCES\n    Escribir (\"Valor medio de las notas: \", suma/numElem)\nSI_NO Escribir (\"No hay notas que promediar\")\nFIN_SI",
+    "explicacion": "Utiliza una iteración MIENTRAS porque el número de alumnos no es conocido de antemano. La condición de continuación (nota >= 0) se evalúa al principio. Es imprescindible la acción de inicialización (leer la primera nota antes del bucle) y el tratamiento repetido (leer la siguiente nota al final del cuerpo).",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Olvidar la lectura de actualización dentro del bucle",
+        "codigo": "suma <- 0; numElem <- 0; Leer (nota);\nMIENTRAS nota >= 0 HACER\n    suma <- suma + nota; numElem <- numElem + 1;\nFIN_MIENTRAS;\n...",
+        "error": "Este es uno de los causantes de los cuelgues de programas (El problema de la parada). La variable 'nota' nunca se actualiza dentro del ciclo, por lo que la condición 'nota >= 0' siempre será verdadera si el primer valor lo fue, creando un bucle infinito."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Inicializar el contador de elementos a 1 en lugar de 0",
+        "codigo": "suma <- 0; numElem <- 1; Leer (nota);\nMIENTRAS nota >= 0 HACER\n...",
+        "error": "Error lógico en las acciones de inicialización. El contador debe empezar en 0 porque aún no se ha procesado ninguna nota válida. Si empieza en 1, el promedio final (suma/numElem) será incorrecto porque el divisor será mayor de lo real."
+      }
+    ]
+  },
+  "maximo_comun_divisor": {
+    "tema": "Tema 3 -> Composición MIENTRAS con análisis de casos: Cálculo del MCD",
+    "codigo_correcto": "Leer (a, b);\nu <- a; v <- b;\nMIENTRAS u != v HACER\n    SEGÚN u, v\n        v < u : u <- u - v\n        v > u : v <- v - u\n    FIN_SEGÚN\nFIN_MIENTRAS;\nEscribir (u)",
+    "explicacion": "El bucle itera mientras los dos valores sean distintos. En cada paso de la iteración se utiliza un análisis de casos (SEGÚN) para restarle al mayor de los valores el menor. El proceso converge y se detiene cuando ambos son iguales.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Condición de iteración incorrecta (igualdad en lugar de desigualdad)",
+        "codigo": "Leer (a, b);\nu <- a; v <- b;\nMIENTRAS u = v HACER\n...",
+        "error": "Error en la formulación de la condición de continuación. El bucle MIENTRAS se ejecuta solo si la condición es Verdadera. Si pones 'u = v', y los números iniciales son distintos (ej. 15 y 10), el bucle no iterará ni una sola vez y terminará prematuramente."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Restar siempre 'v' a 'u' sin hacer el análisis de casos",
+        "codigo": "MIENTRAS u != v HACER\n    u <- u - v\nFIN_MIENTRAS;",
+        "error": "Viola la lógica necesaria para que exista convergencia (función de cota). Si 'v' es mayor que 'u', 'u' tomará un valor negativo. Como las variables deben ser mayores que 0, la iteración no garantiza su parada y producirá datos sin sentido."
+      }
+    ]
+  },
+  "factorial_recorriendo": {
+    "tema": "Tema 3 -> Composición RECORRIENDO: Cálculo del factorial de un número",
+    "codigo_correcto": "Leer (n);\nfact <- 1;\ni RECORRIENDO [2, n] HACER\n    fact <- fact * i\nFIN_RECORRIENDO;\nEscribir (fact)",
+    "explicacion": "Se utiliza la composición RECORRIENDO porque el número de iteraciones es conocido de antemano en tiempo de ejecución (intervalo de 2 a n). El inicio, la actualización y la parada están implícitos en sus elementos constituyentes.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Alterar manualmente la variable de control dentro del bucle",
+        "codigo": "fact <- 1;\ni RECORRIENDO [2, n] HACER\n    fact <- fact * i\n    i <- i + 1\nFIN_RECORRIENDO;",
+        "error": "Viola una de las reglas estrictas de la composición RECORRIENDO: el bloque de sentencias NO debe modificar el valor de la variable de control ('i'). La propia estructura ya se encarga automáticamente de incrementarla tomando los valores del intervalo."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Inicializar la variable acumuladora (fact) a 0",
+        "codigo": "Leer (n);\nfact <- 0;\ni RECORRIENDO [2, n] HACER\n    fact <- fact * i\nFIN_RECORRIENDO;",
+        "error": "Error en los tratamientos previos a la iteración. Al usar un bucle para realizar multiplicaciones sucesivas (productorio), la variable que acumula el resultado debe inicializarse a 1. Si empieza en 0, 'fact * i' siempre será 0."
+      }
+    ]
+  },
+
+  "recorrido_longitud_texto": {
+    "tema": "Tema 4 -> Esquemas algorítmicos de recorrido: Calcular la longitud de un texto",
+    "codigo_correcto": "Comenzar (S); conta <- 0;\nMIENTRAS EA (S) != MarcaFin HACER\n    conta <- conta + 1; Avanzar (S)\nFIN_MIENTRAS;\nEscribir (conta)",
+    "explicacion": "Sigue el esquema de recorrido del Primer Modelo de acceso secuencial. Tras la inicialización, la iteración comprueba que el Elemento Actual (EA) no sea el fin de secuencia. El ciclo siempre sigue el orden: Comprobar -> Tratar el EA (sumar al contador) -> Avanzar.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Olvidar la primitiva de avance dentro del bucle",
+        "codigo": "Comenzar (S); conta <- 0;\nMIENTRAS EA (S) != MarcaFin HACER\n    conta <- conta + 1;\nFIN_MIENTRAS;",
+        "error": "Si omites la instrucción 'Avanzar (S)', la ventana de lectura nunca se moverá. El Elemento Actual (EA) siempre será el mismo, la condición del MIENTRAS nunca será falsa (si el texto no está vacío) y provocarás un bucle infinito."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Alterar el orden del ciclo: Avanzar antes de tratar",
+        "codigo": "Comenzar (S); conta <- 0;\nMIENTRAS EA (S) != MarcaFin HACER\n    Avanzar (S); conta <- conta + 1;\nFIN_MIENTRAS;",
+        "error": "Error propio del Primer Modelo. La primitiva 'Comenzar(S)' ya hace disponible el primer elemento en el EA. Si avanzas antes de tratarlo, te habrás saltado el primer elemento de la secuencia y acabarás procesando la MarcaFin como si fuera un carácter válido."
+      }
+    ]
+  },
+  "busqueda_letra_A": {
+    "tema": "Tema 4 -> Esquemas algorítmicos de búsqueda: Existencia de una letra en un texto",
+    "codigo_correcto": "Comenzar (S);\nMIENTRAS (EA (S) != MarcaFin) Y (EA (S) != 'A') HACER\n    Avanzar (S)\nFIN_MIENTRAS;\nSEGÚN EA (S)\n    EA (S) = MarcaFin : Escribir (\"No hay ninguna A\");\n    EA (S) != MarcaFin : Escribir (\"Hay al menos una A\");\nFIN_SEGÚN",
+    "explicacion": "Sigue el esquema de Búsqueda clásico. La iteración avanza mientras no se llegue al final (MarcaFin) Y no se cumpla la propiedad buscada (que el EA sea 'A'). Al detenerse, es obligatorio hacer un análisis de casos (SEGÚN) para determinar por cuál de las dos condiciones se detuvo el bucle.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Usar el operador O (OR) lógico en la condición del bucle",
+        "codigo": "MIENTRAS (EA (S) != MarcaFin) O (EA (S) != 'A') HACER\n    Avanzar (S)\nFIN_MIENTRAS;",
+        "error": "En las búsquedas, la condición de continuación debe usar un 'Y' (AND) lógico. Si usas 'O', el bucle seguirá iterando mientras se cumpla AL MENOS UNA condición. Esto significa que si encuentra la 'A', la condición (EA != MarcaFin) seguirá siendo verdad y seguirá avanzando hasta el final de la secuencia sin detenerse."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Omitir el análisis de casos al finalizar el recorrido",
+        "codigo": "MIENTRAS (EA (S) != MarcaFin) Y (EA (S) != 'A') HACER\n    Avanzar (S)\nFIN_MIENTRAS;\nEscribir (\"Se ha encontrado la letra A\");",
+        "error": "Un bucle de búsqueda puede terminar por dos motivos: con éxito (encontró el elemento) o con fracaso (llegó al final de la secuencia sin encontrarlo). Si omites el bloque 'SEGÚN', estarás asumiendo incorrectamente que la búsqueda siempre tiene éxito."
+      }
+    ]
+  },
+  "recorrido_segundo_modelo": {
+    "tema": "Tema 4 -> Generalización de los modelos de acceso: Media aritmética (Segundo Modelo)",
+    "codigo_correcto": "Iniciar (S);\nsuma <- 0.0; n <- 0;\nMIENTRAS NO EsÚltimo (S) HACER\n    Avanzar (S);\n    suma <- suma + EA (S); n <- n + 1\nFIN_MIENTRAS;\nSEGÚN n\n    n = 0 : Escribir (\"Secuencia vacía\");\n    n > 0 : media <- suma / n; Escribir (media);\nFIN_SEGÚN",
+    "explicacion": "Ejemplo utilizando el Segundo Modelo de acceso secuencial. En este modelo, el primer elemento NO está disponible tras iniciar, y el final se detecta estando sobre el último elemento significativo. Por ello, el orden del ciclo iterativo cambia respecto al primer modelo: Comprobar fin -> Avanzar -> Tratar.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Aplicar el ciclo del primer modelo (Tratar y luego Avanzar)",
+        "codigo": "Iniciar (S);\nsuma <- 0.0; n <- 0;\nMIENTRAS NO EsÚltimo (S) HACER\n    suma <- suma + EA (S); n <- n + 1;\n    Avanzar (S);\nFIN_MIENTRAS;",
+        "error": "Error crítico. En el Segundo Modelo, la primitiva 'Iniciar(S)' NO hace que el primer elemento sea significativo de forma inmediata. Si intentas sumar el Elemento Actual (EA) antes de ejecutar el primer 'Avanzar(S)', estarás leyendo un dato basura o no definido."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Usar las primitivas del primer modelo en la condición",
+        "codigo": "Iniciar (S);\nsuma <- 0.0; n <- 0;\nMIENTRAS EA (S) != MarcaFin HACER\n    Avanzar (S);\n    suma <- suma + EA (S);\nFIN_MIENTRAS;",
+        "error": "En el Segundo Modelo de acceso, la detección del final no se hace leyendo una marca de fin imaginaria con el EA. El esquema obliga a utilizar la primitiva booleana 'EsÚltimo(S)' o 'EsVacía(S)' en las comprobaciones."
+      }
+    ]
+  },
+  
+  "busqueda_bidimensional": {
+    "tema": "Tema 5 -> Búsqueda en tablas: Posición de un carácter dado en una tabla bidimensional",
+    "codigo_correcto": "i <- 1; j <- 1;\nMIENTRAS NO ( (i = N) Y (j = M) ) Y (mi,j != car) HACER\n    SI j < M ENTONCES\n        j <- j + 1\n    SI_NO\n        i <- i + 1; j <- 1\n    FIN_SI\nFIN_MIENTRAS;\nSI mi,j = car ENTONCES res <- < i, j >\nSI_NO res <- < 0, 0 > FIN_SI;\nPosEnTabla <- res",
+    "explicacion": "Algoritmo de búsqueda sobre una tabla multidimensional (matriz). Usa un bucle MIENTRAS para avanzar posición a posición por las filas y columnas hasta encontrar el carácter o agotar las dimensiones. Al terminar, usa un análisis de casos para comprobar si se detuvo porque lo encontró o porque se acabó la matriz.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Condición de fin de matriz con límite erróneo",
+        "codigo": "MIENTRAS NO ( (i = N) O (j = M) ) Y (mi,j != car) HACER\n...",
+        "error": "Error lógico en la condición de parada del recorrido bidimensional. Si usas 'O', el bucle se detendrá en cuanto llegues al final de la primera fila (cuando j = M), impidiéndote seguir buscando en el resto de la matriz. La condición correcta es '(i = N) Y (j = M)' que representa la última celda de la tabla."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Omitir el análisis de casos al salir del bucle",
+        "codigo": "MIENTRAS NO ( (i = N) Y (j = M) ) Y (mi,j != car) HACER\n    ... \nFIN_MIENTRAS;\nPosEnTabla <- < i, j >",
+        "error": "Error clásico de búsqueda que ya vimos en el tema 4. Si no compruebas mediante un 'SI mi,j = car ENTONCES...' el motivo por el que se detuvo el bucle, devolverás la última posición de la matriz (<N, M>) creyendo erróneamente que allí está el carácter, aunque la tabla no lo contenga."
+      }
+    ]
+  },
+  "ordenacion_insercion_directa": {
+    "tema": "Tema 5 -> Algoritmos de ordenación: Inserción directa (con centinela)",
+    "codigo_correcto": "q RECORRIENDO[2, n] HACER\n    a0 <- aq; { Centinela }\n    j <- q - 1;\n    MIENTRAS a0.clave < aj.clave HACER\n        aj+1 <- aj; { Desplazamiento }\n        j <- j - 1;\n    FIN_MIENTRAS;\n    aj+1 <- a0;\nFIN_RECORRIENDO",
+    "explicacion": "Este método inserta un elemento en la posición que le corresponde dentro de la parte ya ordenada. Usa un 'centinela' en la posición 0 (a0) para guardar el elemento a insertar y simplificar la condición de salida del bucle MIENTRAS que desplaza los elementos mayores hacia la derecha.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Empezar el recorrido externo en 1 en lugar de 2",
+        "codigo": "q RECORRIENDO [1, n] HACER\n    a0 <- aq;\n...",
+        "error": "Inconsistencia en el invariante del bucle. El algoritmo asume que el primer elemento (subtabla de tamaño 1) ya está ordenado por sí mismo de forma trivial. Si empiezas en q=1, pisarás innecesariamente la posición centinela y harás comparaciones inútiles de un elemento consigo mismo."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Condición del bucle interno invertida",
+        "codigo": "MIENTRAS a0.clave > aj.clave HACER\n    aj+1 <- aj;\n...",
+        "error": "Si la condición de desplazamiento se hace cuando la clave del centinela es MAYOR, el algoritmo ordenará la tabla en sentido inverso (de mayor a menor) en lugar de orden ascendente. Para que sea de menor a mayor, debemos desplazar los elementos solo cuando la clave a insertar sea menor (<) que la del elemento analizado."
+      }
+    ]
+  },
+  "ordenacion_seleccion_directa": {
+    "tema": "Tema 5 -> Algoritmos de ordenación: Selección directa",
+    "codigo_correcto": "q RECORRIENDO [1, n - 1] HACER\n    pos <- q;\n    min <- aq;\n    j RECORRIENDO[q+1, n] HACER\n        SI min.clave > aj.clave ENTONCES\n            pos <- j;\n            min <- aj;\n        FIN_SI\n    FIN_RECORRIENDO\n    apos <- aq;\n    aq <- min\nFIN_RECORRIENDO",
+    "explicacion": "En cada paso 'q', el algoritmo busca el elemento mínimo en la parte desordenada de la tabla (desde 'q+1' hasta 'n'). Una vez terminado el recorrido interno, intercambia ese mínimo encontrado con el elemento de la posición 'q', garantizando que los primeros elementos queden ordenados definitivamente.",
+    "variantes":[
+      {
+        "opcion": "A",
+        "descripcion": "Recorrer toda la tabla en el bucle interno desde el índice 1",
+        "codigo": "q RECORRIENDO [1, n - 1] HACER\n...\n    j RECORRIENDO[1, n] HACER\n        SI min.clave > aj.clave ENTONCES...\n...",
+        "error": "Error que destruye el progreso del algoritmo (violación del Invariante). La búsqueda del mínimo debe hacerse obligatoriamente SOLO en la parte desordenada (desde q+1 en adelante). Si el bucle 'j' empieza en 1, volverás a seleccionar los elementos que ya habías colocado ordenados en pasos anteriores."
+      },
+      {
+        "opcion": "B",
+        "descripcion": "Realizar el intercambio de elementos dentro del bucle interno",
+        "codigo": "j RECORRIENDO [q+1, n] HACER\n    SI min.clave > aj.clave ENTONCES\n        pos <- j; min <- aj;\n        apos <- aq; aq <- min\n    FIN_SI\nFIN_RECORRIENDO",
+        "error": "Error de eficiencia y diseño de esquemas. El intercambio definitivo ('apos <- aq; aq <- min') solo se puede y se debe realizar FUERA del bucle 'j', cuando ya has mirado todos los elementos y estás 100% seguro de cuál es el mínimo. Hacerlo dentro del 'SI' produce intercambios constantes e inútiles (como en el algoritmo de la Burbuja)."
+      }
+    ]
+  }
+}
