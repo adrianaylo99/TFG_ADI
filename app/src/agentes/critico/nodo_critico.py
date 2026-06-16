@@ -7,6 +7,7 @@ from utils.db_manager import obtener_categorias_errores, registrar_estadistica_e
 from dotenv import load_dotenv
 
 load_dotenv()
+model_name = os.getenv("OPENAI_MODEL_NAME")
 api_key_oss = os.getenv("GPT_OSS_KEY") 
 base_url_oss = os.getenv("BASE_URL_OSS")
 
@@ -15,46 +16,63 @@ def nodo_critico(state, config):
     user_input = messages[-1].content
     ejemplos = cargar_rubrica_critico_evaluador()
 
+    if not ejemplos:
+        error_msg = "**Aviso del sistema:** Lo siento, el sistema no se encuentra disponible por un problema técnico en el servidor. Avise a un administrador."
+        return {"messages": [AIMessage(content=error_msg)]}
+
     # Extraemos las claves y los títulos para el LLM que busca errores
     catalogo_titulos = {k: v["titulo"] for k, v in ejemplos.items()}
     titulos_json = json.dumps(catalogo_titulos, ensure_ascii=False, indent=2)
 
     llm_detector = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
         temperature=0.0,
-        max_tokens=5000
+        max_tokens=3000
     )
 
-    prompt_detector = f"""
-    Eres un analizador estático de código experto.
-    Tu tarea es leer el código del alumno y comprobar si comete alguno de los errores típicos de nuestro catálogo.
-    Además, debes detectar si el código tiene algún otro error que no esté en la lista.
-    
+    prompt_detector = f"""Eres un analizador estático de código experto.
+    Tu tarea es DOBLE y debes realizarla de forma muy estricta:
+    TAREA A: Buscar si el código comete errores de nuestro catálogo.
+    TAREA B: Buscar si el código tiene errores de sintaxis (fuera del catálogo).
+
     CATÁLOGO DE ERRORES:
     {titulos_json}
 
-    REGLAS ESTRICTAS:
-    1. Analiza el código y decide qué errores del catálogo se cometen.
-    2. Devuelve las claves de los errores separadas por comas (ejemplo: tema4_error_1, tema2_error_3).
-    3. Si encuentras un error adicional que NO está en el catálogo, añade exactamente la etiqueta '%codigo%' seguida de una breve y concisa descripción técnica de ese error al final de la respuesta.
-    4. Si el código no tiene errores (o si directamente no hay código), devuelve la palabra NINGUNO.
-    5. NO expliques nada. NO saludes. Solo devuelve las claves o NINGUNO.
+    REGLAS DE FORMATO DE SALIDA:
+    Debes responder SIEMPRE con una única línea de texto. NO saludes, NO expliques nada.
 
-    EJEMPLOS DE SALIDA ESPERADA:
-    - tema4_error_1, tema2_error_3
-    - NINGUNO %codigo% Falta cerrar la llave de la función main.
-    - tema1_error_2 %codigo% Se intenta usar la variable 'x' sin haberla declarado antes.
-    - NINGUNO
+    Para la TAREA A:
+    - Si el código comete errores del catálogo, escribe sus claves separadas por comas (ej. tema4_error_1, tema4_error_2).
+    - Si NO comete errores del catálogo, escribe exactamente la palabra NINGUNO.
+
+    Para la TAREA B:
+    - Busca errores como: falta de punto y coma, llaves sin cerrar, o palabras mal escritas (ej. 'retrn' en vez de 'return').
+    - Si encuentras alguno de estos errores de sintaxis, añade un espacio, luego la etiqueta '%codigo%' y una breve descripción del error.
+    - EXCEPCIÓN: El código del alumno suele ser un fragmento suelto. ESTÁ PROHIBIDO marcar como error la falta de '#include', la falta de 'main()' o la falta de 'using namespace std'.
+    - Si la sintaxis está perfecta, simplemente NO añadas la etiqueta '%codigo%'.
+
+    EJEMPLOS EXACTOS DE CÓMO DEBES RESPONDER:
+    tema4_error_1, tema4_error_2
+    NINGUNO %codigo% Falta un punto y coma (;) al final de la instrucción.
+    tema4_error_3 %codigo% La palabra clave 'return' está mal escrita como 'retrn'.
+    NINGUNO
+    tema4_error_1
     """
 
-    # Ejecutamos el detector no usamos config aquí para no mostrarlo en la interfaz por streaming
     mensajes_detector = [
         SystemMessage(content=prompt_detector), 
         HumanMessage(content=user_input)
     ]
-    respuesta_detector = llm_detector.invoke(mensajes_detector).content.strip()
+    
+    try:
+        respuesta_detector = llm_detector.invoke(mensajes_detector).content.strip()
+    except Exception as e:
+        print(f"Error en Nodo Crítico (Bibliotecario): {e}")
+        error_msg = "**Aviso del sistema:** Lo siento, ha ocurrido un error en el sistema. Avise a un administrador."
+
+        return {"messages": [AIMessage(content=error_msg)]}
 
     # División de la respuesta
     partes = respuesta_detector.split("%codigo%")
@@ -69,19 +87,20 @@ def nodo_critico(state, config):
 
     # Instanciamos el LLM
     llm = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
         temperature=0.1,
         streaming=True,
+        max_tokens=5000
     )
 
     if not claves_detectadas:
         # No hay errores de la rúbrica
-        system_prompt = """
-        Eres el Agente Crítico, un profesor experto, paciente y didáctico de Introducción a la Programación.
-        El alumno te ha enviado un mensaje o un código. Tras analizarlo, NO se han encontrado errores.
+        system_prompt = """Eres el Agente Crítico, un profesor experto, paciente y didáctico de Introducción a la Programación.
+        El alumno te ha enviado un mensaje o un fragmento de código. Tras analizarlo, NO se han encontrado errores de nuestro interés.
         Felicítale por su buen trabajo, valida su esfuerzo de forma motivadora y anímale a seguir programando.
+        Tu única respuesta debe ser la felicitación.
         Usa un tono amable y cercano.
         """
     else:
@@ -89,17 +108,16 @@ def nodo_critico(state, config):
         rubrica_filtrada = {k: ejemplos[k] for k in claves_detectadas}
         info_json_filtrada = json.dumps(rubrica_filtrada, ensure_ascii=False, indent=2)
 
-        system_prompt = f"""
-        Eres el Agente Crítico, un profesor didáctico de Introducción a la Programación.
-        Un alumno quiere corregir unos errores de su código y debes explicarselos.
-        A continuación se te proporciona un JSON que contiene los errores que debes corregir al alumno divididos en claves del estilo "temaX_errorY".
-        
+        system_prompt = f"""Eres el Agente Crítico, un profesor didáctico de Introducción a la Programación.
+        Un alumno quiere corregir unos errores de su código y debes explicárselos.
+        A continuación se te proporciona un JSON que contiene los errores que debes corregir (con ejemplos de correcciones) al alumno divididos en claves del estilo "temaX_errorY".
+
         JSON DE ERRORES:
         {info_json_filtrada}
-        
+
         REGLAS DE CORRECCIÓN:
-        1. Usa la información del JSON DE ERRORES para explicarle didácticamente SOLO los errores del JSON.
-        2. Pasa completamente de los errores que NO este en el JSON DE ERRORES, haz como si no estuviesen.
+        1. Usa la información del JSON DE ERRORES para explicarle didácticamente TODOS los errores que aparecen JSON apoyándote en los ejemplos que se proporcionan para que tengas algo de referencia.
+        2. IGNORA completamente cualquier otro error de sintaxis que NO esté en el JSON DE ERRORES (haz como si no estuviesen).
         3. No menciones el JSON ni el número de error en la respuesta. Responde como lo haría un profesor a su alumno.
         4. Sé amable, constructivo y formatea el código usando Markdown.
         """
@@ -114,7 +132,13 @@ def nodo_critico(state, config):
     llm_message = [system_message] + [current_message]
     
     # Llamada directa al llm con el mensaje y el config para el streming de tokens
-    respuesta = llm.invoke(llm_message, config=config)
+    try:
+        respuesta = llm.invoke(llm_message, config=config)
+    except Exception as e:
+        print(f"Error en Nodo Crítico: {e}")
+        error_msg = "**Aviso del sistema:** Lo siento, ha ocurrido un error en el sistema. Avise a un administrador."
+
+        return {"messages": [AIMessage(content=error_msg)]}
 
     # Si ha habido algún error de programación no contenido en la rúbrica de la asginatura se registra en la BD por si fuese de interés
     if error_adicional:
@@ -125,19 +149,19 @@ def nodo_critico(state, config):
             categorias_texto = ", ".join(categorias_existentes) if categorias_existentes else "No hay categorias registradas todavía."
             
             llm_clasificador = ChatOpenAI(
-                model="gpt-oss",
+                model=model_name,
                 api_key=api_key_oss,
                 base_url=base_url_oss,
-                temperature=0.0
+                temperature=0.0,
+                max_tokens=3000
             )
             
-            prompt_clasificador = f"""
-            Eres un sistema de clasificación automática de errores de programación.
+            prompt_clasificador = f"""Eres un sistema de clasificación automática de errores de programación.
             Se ha detectado el siguiente error cometido por un alumno: "{error_adicional}"
-            
+
             Aquí tienes la lista de categorías de errores que ya tenemos registradas en la base de datos:
             [{categorias_texto}]
-            
+
             TU TAREA:
             1. Analiza el error del alumno y decide a qué categoría pertenece.
             2. Si el error encaja perfectamente en una categoría existente, devuelve ÚNICAMENTE el nombre exacto de esa categoría.

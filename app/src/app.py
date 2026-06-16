@@ -39,7 +39,11 @@ def evt_cambiar_chat(thread_id):
 
 # Para cuando se hace click en crear el chat y se le pide al controlador
 def evt_crear_chat():
-    st.session_state.current_thread_id = controlador.crear_chat(st.session_state.user_id)
+    try:
+        st.session_state.current_thread_id = controlador.crear_chat(st.session_state.user_id)
+    except Exception as e:
+        print(f"Error al crear chat en la UI: {e}")
+        st.toast("No se pudo crear el chat. Problemas de conexión con el servidor.")
 
 # Se limipian las variables de estado de sesión al cerrar sesión y se vuelve al login
 def evt_cerrar_sesion():
@@ -64,18 +68,22 @@ if not st.session_state.logged_in:
         # Si tenemos una cadena vacía después de hacer strip() no es un nombre válido
         nombre = username_input.strip()
         if nombre:
-            st.session_state.username = nombre
-            st.session_state.user_id = controlador.login_usuario(nombre)
+            try:
+                st.session_state.username = nombre
+                st.session_state.user_id = controlador.login_usuario(nombre)
 
-            chats_existentes = controlador.obtener_chats(st.session_state.user_id)
-            if not chats_existentes:
-                st.session_state.current_thread_id = controlador.crear_chat(st.session_state.user_id)
-            else:
-                # Cargamos el chat más reciente
-                st.session_state.current_thread_id = chats_existentes[0]["thread_id"]
+                chats_existentes = controlador.obtener_chats(st.session_state.user_id)
+                if not chats_existentes:
+                    st.session_state.current_thread_id = controlador.crear_chat(st.session_state.user_id)
+                else:
+                    # Cargamos el chat más reciente
+                    st.session_state.current_thread_id = chats_existentes[0]["thread_id"]
 
-            st.session_state.logged_in = True
-            st.rerun() # Recarga la página para ir al chat
+                st.session_state.logged_in = True
+                st.rerun() # Recarga la página para ir al chat
+            except Exception as e:
+                print(f"Error crítico en BD al iniciar sesión: {e}")
+                st.error("Error de conexión con el servidor. Inténtalo de nuevo más tarde.")
         else:
             st.warning("Por favor, introduce un nombre válido.")
 
@@ -154,7 +162,7 @@ else:
 
             status_box.empty()                      # Borramos el mensaje de pensando
             response_box.markdown(texto_final)      # Añadimos la respuesta final
-            
+
             # Refresca la barra lateral al terminal completamente para actualizar los títulos
             # de los chats en la barra lateral
             st.rerun()

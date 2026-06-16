@@ -14,15 +14,14 @@ from agentes.evaluador.nodo_evaluador import nodo_evaluador
 from utils.db_manager import pool
 
 load_dotenv()
+model_name = os.getenv("OPENAI_MODEL_NAME")
 api_key_oss = os.getenv("GPT_OSS_KEY") 
 base_url_oss = os.getenv("BASE_URL_OSS")
 
 if not os.getenv("LANGSMITH_API_KEY"):
     print("Error al obtener la LANGSMITH_API_KEY en .env")
-    exit()
 if not api_key_oss:
     print("No se ha encontrado la API Key de GPT-OSS en el .env")
-    exit()
 
 class State(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
@@ -47,11 +46,12 @@ def enrutador_agentes(state) -> Literal["educador", "demostrador", "critico", "e
         historial_texto = "No hay historial previo. Es el comienzo de la conversación."
     
     llm = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
         temperature=0,
-        streaming=False
+        streaming=False,
+        max_tokens=1500
     )
     
     prompt_clasificador = f"""
@@ -75,10 +75,15 @@ def enrutador_agentes(state) -> Literal["educador", "demostrador", "critico", "e
     Usuario: {ultimo_mensaje}
     """
     
-    respuesta = llm.invoke([SystemMessage(content=prompt_clasificador)])
-    decision = respuesta.content.strip().lower()
+    try:
+        respuesta = llm.invoke([SystemMessage(content=prompt_clasificador)])
+        decision = respuesta.content.strip().lower()
+        return decision if decision in ["educador", "demostrador", "critico", "evaluador"] else "educador"
+    except Exception as e:
+        print(f"Error en Enrutador: {e}")
+        return "educador"
 
-    return decision if decision in ["educador", "demostrador", "critico", "evaluador"] else "educador"
+
 
 def obtener_grafo():
       
@@ -106,7 +111,10 @@ def obtener_grafo():
     # Los checkpoints se almacenan en una BD y con el setup() forzamos que se creen
     # las tablas si no existían
     checkpointer = PostgresSaver(pool)
-    checkpointer.setup()
+    try:
+        checkpointer.setup()
+    except Exception as e:
+        print(f"No se pudo conectar a PostgreSQL para el checkpointer de LangGraph: {e}")
 
     app = graph.compile(checkpointer=checkpointer)
     

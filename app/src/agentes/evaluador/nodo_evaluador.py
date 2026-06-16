@@ -7,54 +7,74 @@ from utils.db_manager import obtener_categorias_errores, registrar_estadistica_e
 from dotenv import load_dotenv
 
 load_dotenv()
+model_name = os.getenv("OPENAI_MODEL_NAME")
 api_key_oss = os.getenv("GPT_OSS_KEY") 
 base_url_oss = os.getenv("BASE_URL_OSS")
 
 def nodo_evaluador(state, config):
     messages = state["messages"]
     user_input = messages[-1].content
+    chat_history = messages[-5:-1] if len(messages) > 1 else []
     ejemplos = cargar_rubrica_critico_evaluador()
+
+    if not ejemplos:
+        error_msg = "**Aviso del sistema:** Lo siento, el sistema no se encuentra disponible por un problema técnico en el servidor. Avise a un administrador."
+        return {"messages": [AIMessage(content=error_msg)]}
 
     # Extraemos las claves y los títulos para el LLM que busca errores
     catalogo_titulos = {k: v["titulo"] for k, v in ejemplos.items()}
     titulos_json = json.dumps(catalogo_titulos, ensure_ascii=False, indent=2)
 
     llm_detector = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
         temperature=0.0,
-        max_tokens=5000
+        max_tokens=3000
     )
 
     prompt_detector = f"""
     Eres un analizador estático de código experto.
-    Tu tarea es leer el código del alumno y comprobar si comete alguno de los errores típicos de nuestro catálogo.
-    Además, debes detectar si el código tiene algún otro error que no esté en la lista.
+    Tu única tarea es comprobar si el código proporcionado por el alumno comete alguno de los errores de nuestro catálogo.
+    
+    INSTRUCCIONES DE BÚSQUEDA DE CÓDIGO:
+    1. Analiza el último mensaje del usuario para ver si ha enviado código.
+    2. Si el mensaje actual NO contiene código, revisa el historial de la conversación y analiza el ÚLTIMO bloque de código que haya enviado el alumno.
     
     CATÁLOGO DE ERRORES:
     {titulos_json}
 
-    REGLAS ESTRICTAS:
-    1. Analiza el código y decide qué errores del catálogo se cometen.
-    2. Devuelve las claves de los errores separadas por comas (ejemplo: tema4_error_1, tema2_error_3).
-    3. Si encuentras un error adicional que NO está en el catálogo, añade exactamente la etiqueta '%codigo%' seguida de una breve y concisa descripción técnica de ese error al final de la respuesta.
-    4. Si el código no tiene errores (o si directamente no hay código), devuelve la palabra NINGUNO.
-    5. NO expliques nada. NO saludes. Solo devuelve las claves o NINGUNO.
+    REGLAS ESTRICTAS DE SALIDA:
+    1. Devuelve las claves de los errores separadas por comas (ejemplo: tema4_error_1, tema2_error_3).
+    2. Si encuentras un error adicional que NO está en el catálogo, añade la etiqueta '%codigo%' seguida de una breve y concisa descripción técnica al final de la respuesta.
+    3. Si el código analizado no tiene errores, devuelve NINGUNO.
+    4. ATENCIÓN: Si tras buscar en el mensaje actual y en el historial NO encuentras ningún código para evaluar, devuelve EXACTAMENTE la palabra FALTA_CODIGO.
+    5. NO expliques nada. NO saludes. Tu única salida válida es el formato estricto o la palabra FALTA_CODIGO.
 
     EJEMPLOS DE SALIDA ESPERADA:
     - tema4_error_1, tema2_error_3
     - NINGUNO %codigo% Falta cerrar la llave de la función main.
     - tema1_error_2 %codigo% Se intenta usar la variable 'x' sin haberla declarado antes.
     - NINGUNO
+    - FALTA_CODIGO
     """
+    
+    historial_solo_usuario = [msg for msg in chat_history if isinstance(msg, HumanMessage)]
 
     # Ejecutamos el detector no usamos config aquí para no mostrarlo en la interfaz por streaming
-    mensajes_detector = [
-        SystemMessage(content=prompt_detector), 
-        HumanMessage(content=user_input)
-    ]
-    respuesta_detector = llm_detector.invoke(mensajes_detector).content.strip()
+    mensajes_detector = [SystemMessage(content=prompt_detector)] + historial_solo_usuario + [HumanMessage(content=user_input)]
+    try:
+        respuesta_detector = llm_detector.invoke(mensajes_detector).content.strip()
+    except Exception as e:
+        print(f"Error en Nodo Evaluador (Bibliotecario): {e}")
+        error_msg = "**Aviso del sistema:** Lo siento, ha ocurrido un error en el sistema. Avise a un administrador."
+
+        return {"messages": [AIMessage(content=error_msg)]}
+    
+    if respuesta_detector == "FALTA_CODIGO":
+        return {"messages": [AIMessage(content="Por favor, envíame el código que quieres que revise o evalúe.")]}
+
+    
 
     # División de la respuesta
     partes = respuesta_detector.split("%codigo%")
@@ -71,34 +91,34 @@ def nodo_evaluador(state, config):
     
     # Instanciamos el LLM
     llm = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
         temperature=0,
-        streaming=True
+        streaming=True,
+        max_tokens=5000
     )
 
     system_prompt = f"""
     Eres el Agente Evaluador, experto en corrección estricta de código.
-    Tu única tarea es puntuar el código proporcionado por el alumno basándote en una rúbrica.
-    Si el alumno no ha mandado un código con su mensaje, pídele amablemente que te lo proporcione en otro mensaje para poder evaluarlo.
+    Tu única tarea es calcular la nota final y extraer los fragmentos de código erróneos basándote en los fallos ya detectados.
     
-    A continuación, se te proporciona la RÚBRICA DE EVALUACIÓN en formato JSON. 
-    Esta rúbrica contiene un catálogo de errores, la explicación del fallo y los puntos que restan:
+    A continuación, se te proporciona la RÚBRICA FILTRADA en formato JSON. 
+    ATENCIÓN: Un analizador experto ya ha evaluado el código y ha determinado que el alumno ha cometido TODOS y cada uno de los errores presentes en este JSON. No debes buscar si existen o no; asume que están presentes.
     
-    --- RÚBRICA ---
+    --- ERRORES COMETIDOS POR EL ALUMNO (RÚBRICA FILTRADA) ---
     {info_json_filtrada}
-    ---------------
+    ----------------------------------------------------------
     
     REGLAS DE EVALUACIÓN ESTRICTAS:
     1. La nota base inicial es 10.
-    2. Analiza el código del alumno en busca de CUALQUIERA de los errores listados en la RÚBRICA. Ten en cuenta que un alumno puede cometer varios errores simultáneamente.
-    3. Partiendo de la nota inicial, para cada error que cometa, lee su campo "penalizacion" para descubrir los puntos que penaliza y réstalos de la nota. La nota no puede ser inferior a 0.
-    4. Si el código tiene fallos que NO están listados en la rúbrica, no restes puntos por ellos. Pasa de ellos.
-    5. NO expliques el error ni le des la solución al alumno. Tu labor es únicamente calificar.
+    2. Por cada error listado en el JSON anterior, lee su campo de penalización y resta esos puntos de la nota base. La nota final no puede ser inferior a 0.
+    3. NO busques fallos nuevos ni evalúes el código por tu cuenta. Cíñete exclusivamente a restar los puntos de los errores del JSON proporcionado.
+    4. NO expliques el error ni le des la solución al alumno. Tu labor es únicamente redactar la calificación.
+    5. Busca en el historial proporcionado el código del alumno y extrae el fragmento exacto que provoca cada error del JSON para poder mostrarlo.
     
     FORMATO DE SALIDA ESTRICTO:
-    **Nota Final:** [Nota]
+    **Nota Final:** [Nota calculada]
     
     **Errores detectados:**
     - [Título del error de la rúbrica] (-X puntos): `[fragmento de código del alumno que está mal en Markdown]`
@@ -113,10 +133,16 @@ def nodo_evaluador(state, config):
     current_message = HumanMessage(content=user_input)
     
     # Lista con todo para que el llm lo reciba
-    llm_message = [system_message] + [current_message]
+    llm_message = [system_message] + historial_solo_usuario + [current_message]
     
     # Llamada directa al llm con el mensaje y el config para el streming de tokens
-    respuesta = llm.invoke(llm_message, config=config)
+    try:
+        respuesta = llm.invoke(llm_message, config=config)
+    except Exception as e:
+        print(f"Error en Nodo Evaluador: {e}")
+        error_msg = "**Aviso del sistema:** Lo siento, ha ocurrido un error en el sistema. Avise a un administrador."
+
+        return {"messages": [AIMessage(content=error_msg)]}
     
      # Si ha habido algún error de programación no contenido en la rúbrica de la asginatura se registra en la BD por si fuese de interés
     if error_adicional:
@@ -128,10 +154,11 @@ def nodo_evaluador(state, config):
             categorias_texto = ", ".join(categorias_existentes) if categorias_existentes else "No hay categorias registradas todavía."
             
             llm_clasificador = ChatOpenAI(
-                model="gpt-oss",
+                model=model_name,
                 api_key=api_key_oss,
                 base_url=base_url_oss,
-                temperature=0.0
+                temperature=0.0,
+                max_tokens=3000
             )
             
             prompt_clasificador = f"""

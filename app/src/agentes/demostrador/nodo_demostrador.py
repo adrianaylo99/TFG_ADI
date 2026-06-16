@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
+model_name = os.getenv("OPENAI_MODEL_NAME")
 api_key_oss = os.getenv("GPT_OSS_KEY") 
 base_url_oss = os.getenv("BASE_URL_OSS")
 
@@ -16,7 +17,9 @@ def nodo_demostrador(state, config):
     user_input = messages[-1].content
     ejemplos = cargar_rubrica_demostrador()
 
-    historial_solo_usuario =[msg for msg in chat_history if msg.type == "human"]
+    if not ejemplos:
+        error_msg = "**Aviso del sistema:** Lo siento, el sistema no se encuentra disponible por un problema técnico en el servidor. Avise a un administrador."
+        return {"messages": [AIMessage(content=error_msg)]}
 
     # Para no sobrecargar de tokens hay una búsqueda en 2 pasos
     # Primero usamos el llm para que use el mensaje del alumno y busque el título del ejemplo
@@ -26,39 +29,48 @@ def nodo_demostrador(state, config):
     item_list = {k: v["tema"] for k, v in ejemplos.items()}
 
     llm_buscador = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
-        temperature=0
+        temperature=0,
+        max_tokens=3000
     )
 
     prompt_buscador = f"""
-    Eres un bibliotecario. Lee el historial y el mensaje actual del usuario.
-    Aquí tienes nuestro catálogo de ejemplos disponibles:
+    Eres un bibliotecario estricto. Analiza el historial de la conversación y el mensaje actual del usuario.
+    
+    CATÁLOGO DE EJEMPLOS:
     {json.dumps(item_list, ensure_ascii=False, indent=2)}
 
-    Reglas:
-    1. Si el usuario pide un ejemplo sobre un tema, devuelve ÚNICAMENTE la clave (el ID) del ejemplo que mejor encaje.
-    2. Si el usuario pide la "Opción A", "B", etc., revisa el historial para saber de qué clave estabais hablando y devuelve esa misma clave.
-    3. Si pide algo que NO está en el catálogo, no escribas nada.
+    TU TAREA:
+    1. Si el usuario pide un ejemplo sobre un tema, busca en el CATÁLOGO y devuelve ÚNICAMENTE la clave (ID) del ejemplo correspondiente.
+    2. Si el usuario pide una variante (como "Opción A", "Quiero la B", etc.), revisa el historial para saber de qué ejercicio (clave) le estaba hablando el asistente en el mensaje anterior, y devuelve EXACTAMENTE esa misma clave.
+    3. Si el usuario pide algo ajeno a la programación o que NO está en el catálogo, devuelve la palabra NINGUNO.
     
-    No escribas ninguna explicación, SOLO la clave o nada.
+    REGLA ABSOLUTA: Tu respuesta debe ser EXCLUSIVAMENTE la clave o la palabra NINGUNO. Sin comillas, ni punto final, ni explicaciones.
     """
     
-    mensajes_buscador =[SystemMessage(content=prompt_buscador)] + historial_solo_usuario + [HumanMessage(content=user_input)]
+    mensajes_buscador = [SystemMessage(content=prompt_buscador)] + chat_history[-4:] + [HumanMessage(content=user_input)]
     
     # Obtenemos la ID exacta del ejercicio
-    id_encontrado = llm_buscador.invoke(mensajes_buscador).content.strip()
+    try:
+        id_encontrado = llm_buscador.invoke(mensajes_buscador).content.strip()
+    except Exception as e:
+        print(f"Error en Nodo Demostrador (Bibliotecario): {e}")
+        error_msg = "**Aviso del sistema:** Lo siento, ha ocurrido un error en el sistema. Avise a un administrador."
+
+        return {"messages": [AIMessage(content=error_msg)]}
 
 
     
     # Instanciamos el LLM
     llm = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
-        temperature=0.2,
-        streaming=True
+        temperature=0.1,
+        streaming=True,
+        max_tokens=3000
     )
 
     ejemplo_seleccionado = ejemplos.get(id_encontrado)
@@ -66,24 +78,24 @@ def nodo_demostrador(state, config):
     if ejemplo_seleccionado:
         info_json = json.dumps(ejemplo_seleccionado, ensure_ascii=False, indent=2)
         system_prompt = f"""
-        Eres el Agente Demostrador. Tu objetivo es enseñar código paso a paso.
-        Aquí tienes la información EXCLUSIVA del ejemplo que debes mostrar:
+        Eres el Agente Demostrador, un profesor de programación experto, paciente y muy didáctico.
+        Tu objetivo es enseñar código basándote en la información proporcionada.
         
+        JSON DEL EJERCICIO:
         {info_json}
         
-        REGLAS:
-        1. Si es la primera vez que habláis de este ejemplo, muéstrale el 'codigo_correcto' y la 'explicacion'. 
-        2. Luego, ofrécele las 'variantes' (ej: "¿Qué pasa si nos saltamos el primer elemento? Responde A para verlo"). NO le digas el error todavía.
-        3. Si el alumno ha respondido 'A' y/o 'B' a un ejemplo anterior, muéstrale el código de esa(s) variante(s) y usa el campo 'error' para explicarle por qué fallaría.
-        4. Usa siempre bloques de código Markdown (```) para el código.
+        REGLAS DE RESPUESTA:
+        1. PETICIÓN INICIAL: Si el alumno pide ver el ejemplo, muestra EXACTAMENTE el código del campo 'codigo_correcto' en Markdown. Después, utiliza el campo 'explicacion' como base teórica, pero redacta la explicación de forma didáctica, conversacional y bien formateada (usando negritas o listas si lo ves necesario para facilitar la comprensión).
+        2. OFRECER VARIANTES: Tras tu explicación, enumera brevemente las variantes disponibles y anímale a elegir una (ej: "¿Qué crees que pasaría si...? Responde A para ver el error"). NO reveles el error todavía.
+        3. MOSTRAR VARIANTE: Si el usuario pide una variante (ej: "Opción A"), muestra EXACTAMENTE su código ('codigo') y redacta el motivo del fallo de forma pedagógica basándote en su campo 'error'.
+        4. PROHIBICIÓN: Puedes mejorar la redacción y presentación, pero NO inventes conceptos ni alteres los fragmentos de código proporcionados.
         """
     else:
-        # Por si pide algo que no está en el catálogo
         lista_temas = "\n".join([f"- {v}" for v in item_list.values()])
         system_prompt = f"""
         Eres el Agente Demostrador.
-        El usuario ha pedido un ejemplo, pero no tenemos ninguno exacto en la base de datos sobre eso. 
-        Ofrécele amablemente elegir entre los temas que sí tenemos disponibles:
+        El usuario ha pedido un ejemplo o concepto que NO tenemos en la base de datos.
+        Disculpate amablemente indicando que no tienes ese ejemplo exacto, y OBLIGATORIAMENTE ofrécele elegir entre los temas de este catálogo:
         \n{lista_temas}
         """
 
@@ -97,7 +109,13 @@ def nodo_demostrador(state, config):
     llm_message = [system_message] + chat_history + [current_message]
     
     # Llamada directa al llm con el mensaje y el config para el streming de tokens
-    respuesta = llm.invoke(llm_message, config=config)
+    try:
+        respuesta = llm.invoke(llm_message, config=config)
+    except Exception as e:
+        print(f"Error en Nodo Demostrador: {e}")
+        error_msg = "**Aviso del sistema:** Lo siento, ha ocurrido un error en el sistema. Avise a un administrador."
+
+        return {"messages": [AIMessage(content=error_msg)]}
     
     # Devolvemos el estado actualizado
     return {"messages": [AIMessage(content=respuesta.content)]}

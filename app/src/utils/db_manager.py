@@ -54,7 +54,10 @@ def inicializar_base_datos():
             ''')
         conn.commit()
 
-inicializar_base_datos()
+try:
+    inicializar_base_datos()
+except Exception as e:
+    print(f"No se ha podido inicializar la BD al arrancar: {e}")
 
 # Función para gestionar los usuarios
 # La idea general es crear la tabla de usuarios si no existe ya, buscar el usuario por su nombre

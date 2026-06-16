@@ -1,7 +1,7 @@
 {
   "tema4_error_1": {
-    "titulo": "Confundir acción con función: llamar a una acción como función o viceversa.",
-    "ejemplos":[
+    "titulo": "Confundir acción con función: usar una acción (void) dentro de una expresión (ej. en un cout), usar una función como instrucción independiente sin aprovechar su retorno, o usar el nombre de la función como si fuera una variable sin pasarle argumentos.",
+    "ejemplos": [
       {
         "problema": "Definir una función que calcule el mayor de dos enteros introducidos como parámetros.",
         "explicacion": "El código es incorrecto porque se llama a una función como si fuera una acción en Max2 (3,4). Además, se hace uso indebidamente del identificador de la función como si fuera una variable, no como una llamada a una función con argumentos.",
@@ -19,8 +19,8 @@
     ]
   },
   "tema4_error_2": {
-    "titulo": "Confundir un tipo con una variable.",
-    "ejemplos":[
+    "titulo": "Confundir un tipo con una variable: intentar acceder o asignar valores directamente a los miembros desde el nombre de un tipo estructurado (struct o registro) en lugar de crear una instancia/variable de ese tipo.",
+    "ejemplos": [
       {
         "problema": "Declarar un tipo Punto como un registro o struct con dos campos, abscisa y ordenada. Asignar a la abscisa de una variable de tipo Punto el valor 2.3.",
         "explicacion": "El código es incorrecto porque se usa el tipo registro o struct Punto como si fuera una variable de un tipo registro o struct.",
@@ -31,8 +31,8 @@
     ]
   },
   "tema4_error_3": {
-    "titulo": "Declarar una variable local como un parámetro.",
-    "ejemplos":[
+    "titulo": "Declarar una variable local como un parámetro: incluir en la firma de la función variables auxiliares o temporales (ej. 'aux') que solo se utilizan internamente para cálculos o intercambios.",
+    "ejemplos": [
       {
         "problema": "Definir una acción que intercambie el valor de dos variables de tipo carácter.",
         "explicacion": "El código en el que se define una acción que intercambia el valor de dos variables es incorrecto porque se declara la variable aux como un parámetro. Es un error porque una variable auxiliar que no se utiliza para la entrada ni para la salida de la acción debe declararse variable local.",
@@ -43,8 +43,8 @@
     ]
   },
   "tema4_error_4": {
-    "titulo": "Utilizar return con una variable pasada por referencia para salir de un procedimiento o acción.",
-    "ejemplos":[
+    "titulo": "Uso indebido de 'return' en procedimientos (acciones void): utilizar 'return' para devolver una variable pasada por referencia, o usar una instrucción 'return;' vacía para salir anticipadamente de la acción.",
+    "ejemplos": [
       {
         "problema": "Definir una acción que a partir de cuatro parámetros de entrada de tipo entero que representan los dígitos binarios de un número binario de 4 dígitos, devuelva en otro parámetro de salida el valor decimal.",
         "explicacion": "El código en el que se utiliza una instrucción return para devolver un valor es incorrecto porque se debe utilizar el parámetro de salida dec para devolver el valor.",
@@ -62,8 +62,8 @@
     ]
   },
   "tema4_error_5": {
-    "titulo": "Utilizar más de un return para devolver resultado en una función (solo debe haber uno y estar al final).",
-    "ejemplos":[
+    "titulo": "Utilizar más de un 'return' para devolver resultado en una función: emplear múltiples sentencias de retorno en diferentes ramas condicionales en lugar de almacenar el valor y usar un único 'return' al final.",
+    "ejemplos": [
       {
         "problema": "Definir una función que calcule el mayor de dos enteros introducidos como parámetros.",
         "explicacion": "El código es incorrecto porque se utilizan varias instrucciones return para terminar. Solo debe haber un return y estar al final de la función.",
@@ -74,8 +74,8 @@
     ]
   },
   "tema4_error_6": {
-    "titulo": "Realizar lecturas de parámetros de entrada al inicio de acciones y funciones.",
-    "ejemplos":[
+    "titulo": "Realizar lecturas de parámetros de entrada dentro de la función: utilizar 'cin' (u operaciones de lectura) sobre los propios parámetros al inicio de la acción o función, sobrescribiendo el valor original que envió el llamador.",
+    "ejemplos": [
       {
         "problema": "Definir una función que calcule el mayor de dos enteros introducidos como parámetros.",
         "explicacion": "El código es incorrecto porque se realiza una lectura de los parámetros de entrada a y b al inicio de la función. Esto produce que los valores recibidos por los parámetros entrada se pierdan.",
@@ -93,8 +93,8 @@
     ]
   },
   "tema4_error_7": {
-    "titulo": "Realizar operaciones de escritura en pantalla de parámetros de salida (tipo &var) al final de acciones (void accion(...)).",
-    "ejemplos":[
+    "titulo": "Escritura en pantalla de parámetros de salida dentro de acciones: realizar operaciones de impresión (ej. cout) al final de un procedimiento (void) para mostrar parámetros modificados por referencia, mezclando lógica con presentación.",
+    "ejemplos": [
       {
         "problema": "Definir una acción que intercambie el valor de dos variables de tipo carácter.",
         "explicacion": "El código es incorrecto porque se realiza una escritura en la pantalla de los parámetros de entrada/salida a y b al final de la acción. Esto produce que los valores intercambiados se muestren en pantalla cuando no es algo que debe hacer la acción.",
@@ -105,8 +105,8 @@
     ]
   },
   "tema4_error_8": {
-    "titulo": "Realizar operaciones de escritura en pantalla del resultado que devuelve una función dentro de la función.",
-    "ejemplos":[
+    "titulo": "Escritura en pantalla del resultado dentro de la función: realizar operaciones de impresión (ej. cout) dentro de una función para mostrar el valor calculado, en lugar de limitarse a devolverlo con 'return'.",
+    "ejemplos": [
       {
         "problema": "Definir una función que calcule el mayor de dos enteros introducidos como parámetros.",
         "explicacion": "El código es incorrecto porque se realiza una escritura en la pantalla del valor que debe devolver la función, cuando no es algo que debe hacer la función.",
@@ -117,8 +117,8 @@
     ]
   },
   "tema4_error_9": {
-    "titulo": "Emplear instrucciones if seguidas en un análisis de casos en lugar de else if/else.",
-    "ejemplos":[
+    "titulo": "Emplear instrucciones 'if' independientes y secuenciadas para un análisis de casos mutuamente excluyentes, en lugar de utilizar una cadena estructurada de 'else if / else'.",
+    "ejemplos": [
       {
         "problema": "Construye un análisis de casos que a partir de una fecha proporcionada mediante las variables dia, mes y año, obtenga en las mismas variables el siguiente día del año.",
         "explicacion": "El código es incorrecto porque se resuelve el problema mediante instrucciones if secuenciadas, cuando debería hacerse un único análisis de casos. Si la entrada corresponde con un fin de año, un fin de mes de 30 días o un fin de febrero, la ejecución sumará dos días en lugar de uno y de5olverá un resultado incorrecto.",

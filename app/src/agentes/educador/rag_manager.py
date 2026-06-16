@@ -12,15 +12,14 @@ CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "utils", "C
 COLLECTION_NAME = "demo_agente_educador"
 
 load_dotenv()
+model_name = os.getenv("OPENAI_MODEL_NAME")
 api_key_oss = os.getenv("GPT_OSS_KEY") 
 base_url_oss = os.getenv("BASE_URL_OSS")
 
 if not os.getenv("LANGSMITH_API_KEY"):
     print("Error al obtener la LANGSMITH_API_KEY en .env")
-    exit()
 if not api_key_oss:
     print("No se ha encontrado la API Key de GPT-OSS en el .env")
-    exit()
 
 # Lee los archivos Markdown los divide semánticamente por sus títulos y crea o actualiza la base de datos vectorial
 def indexar_documentos_en_ChromaDB():
@@ -113,11 +112,12 @@ def obtener_chain_rag():
 
     # Configurar el LLM
     llm = ChatOpenAI(
-        model="gpt-oss",
+        model=model_name,
         api_key=api_key_oss,
         base_url=base_url_oss,
         temperature=0.1,
-        streaming=True
+        streaming=True,
+        max_tokens=3000
     )
 
     # Prompt que solo use información del contexto

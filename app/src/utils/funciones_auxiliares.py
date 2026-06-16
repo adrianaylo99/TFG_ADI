@@ -5,12 +5,20 @@ RUBRICA_CRITICO_EVALUADOR_PATH = os.path.join(os.path.dirname(__file__), "..", "
 RUBRICA_DEMOSTRADOR_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "Ejemplos", "ejemplos_ejercicios.json")
 
 def cargar_rubrica_demostrador():
-    with open(RUBRICA_DEMOSTRADOR_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(RUBRICA_DEMOSTRADOR_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error al cargar la rúbrica del Agente Demostrador: {e}")
+        return {}
     
 def cargar_rubrica_critico_evaluador():
-    with open(RUBRICA_CRITICO_EVALUADOR_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(RUBRICA_CRITICO_EVALUADOR_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error al cargar la rúbrica del Agente Crítico/Evaluador: {e}")
+        return {}
     
 def limpiar_rubrica(ejemplos):
     rubrica_limpia = {}
