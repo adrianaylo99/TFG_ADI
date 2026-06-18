@@ -36,6 +36,7 @@ st.set_page_config(page_title="Agente Docente Inteligente (ADI)", layout="center
 # Cambiamos el hilo del chat cuando se hace click en otro chat en la interfaz
 def evt_cambiar_chat(thread_id):
     st.session_state.current_thread_id = thread_id
+    st.session_state.agente_actual = "Docente Inteligente"
 
 # Para cuando se hace click en crear el chat y se le pide al controlador
 def evt_crear_chat():
@@ -90,7 +91,10 @@ if not st.session_state.logged_in:
 # Pantalla principal del chat
 else:
     # Cabecera
-    st.title(body="Agente Educador (ADI)", text_alignment="center")
+    if "agente_actual" not in st.session_state:
+        st.session_state.agente_actual = "Docente Inteligente"
+        
+    st.title(body=f"Agente {st.session_state.agente_actual} - ADI", text_alignment="center")
 
     chats = controlador.obtener_chats(st.session_state.user_id)
 
@@ -153,12 +157,13 @@ else:
             )
             
             # El controlador se encarga de procesar la consulta
-            texto_final = controlador.procesar_mensaje(
+            texto_final, agente_usado = controlador.procesar_mensaje(
                 prompt=prompt,
                 thread_id=st.session_state.current_thread_id,
                 username=st.session_state.username,
                 stream_handler=stream_handler
             )
+            st.session_state.agente_actual = agente_usado
 
             status_box.empty()                      # Borramos el mensaje de pensando
             response_box.markdown(texto_final)      # Añadimos la respuesta final

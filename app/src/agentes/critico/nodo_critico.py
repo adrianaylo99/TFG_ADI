@@ -14,6 +14,7 @@ base_url_oss = os.getenv("BASE_URL_OSS")
 def nodo_critico(state, config):
     messages = state["messages"]
     user_input = messages[-1].content
+    chat_history = messages[-5:-1] if len(messages) > 1 else []
     ejemplos = cargar_rubrica_critico_evaluador()
 
     if not ejemplos:
@@ -29,7 +30,7 @@ def nodo_critico(state, config):
         api_key=api_key_oss,
         base_url=base_url_oss,
         temperature=0.0,
-        max_tokens=3000
+        max_tokens=7000
     )
 
     prompt_detector = f"""Eres un analizador estático de código experto.
@@ -61,10 +62,8 @@ def nodo_critico(state, config):
     tema4_error_1
     """
 
-    mensajes_detector = [
-        SystemMessage(content=prompt_detector), 
-        HumanMessage(content=user_input)
-    ]
+    historial_solo_usuario = [msg for msg in chat_history if isinstance(msg, HumanMessage)]
+    mensajes_detector = [SystemMessage(content=prompt_detector)] + historial_solo_usuario + [HumanMessage(content=user_input)]
     
     try:
         respuesta_detector = llm_detector.invoke(mensajes_detector).content.strip()

@@ -136,3 +136,12 @@ def agregar_mensaje_texto_plano(thread_id: str, rol: str, contenido: str):
                 SET historial = historial || %s 
                 WHERE thread_id = %s
             ''', (nuevo_bloque, thread_id))
+
+def obtener_chat_vacio_usuario(user_id: str):
+    with pool.connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT thread_id FROM chats WHERE user_id = %s AND historial = '' LIMIT 1", (user_id,))
+            row = cursor.fetchone()
+            if row:
+                return str(row[0])
+            return None

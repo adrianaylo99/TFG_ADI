@@ -25,6 +25,11 @@ def obtener_chats(user_id: str) -> list:
 # Crea un nuevo chat y devuelve el thread_id
 def crear_chat(user_id: str) -> str:
     try:
+        chat_vacio_id = db_manager.obtener_chat_vacio_usuario(user_id)
+        
+        if chat_vacio_id:
+            return chat_vacio_id
+        
         return db_manager.crear_nuevo_chat(user_id)
     except Exception as e:
         print(f"Error BD crear chat: {e}")
@@ -59,7 +64,7 @@ def obtener_historial_chat(thread_id: str, username: str) -> list:
         return []
 
 # Ejecuta el grafo con la nueva petición y devuelve la respuesta final
-def procesar_mensaje(prompt: str, thread_id: str, username: str, stream_handler) -> str:
+def procesar_mensaje(prompt: str, thread_id: str, username: str, stream_handler) -> tuple:
     config = {
         "configurable": {
             "thread_id": thread_id,
@@ -77,11 +82,22 @@ def procesar_mensaje(prompt: str, thread_id: str, username: str, stream_handler)
     except Exception as e:
         print(f"Error al guardar mensaje del usuario en el historial local: {e}")
         pass
+
+    agente_ejecutado = "Educador"
     
     try:
         # Ejecutamos el grafo el stream_handler se encarga de pintar
-        for _ in app_grafo.stream(initial_state, config=config):
-            pass 
+        for event in app_grafo.stream(initial_state, config=config):
+            if isinstance(event, dict):
+                nombres_preparados = {
+                    "educador": "Educador", 
+                    "demostrador": "Demostrador", 
+                    "critico": "Crítico", 
+                    "evaluador": "Evaluador"
+                }
+                for key in event.keys():
+                    if key in nombres_preparados:
+                        agente_ejecutado = nombres_preparados[key] 
             
         # Recuperamos el mensaje final real de LangGraph
         estado_final = app_grafo.get_state(config)
@@ -94,9 +110,9 @@ def procesar_mensaje(prompt: str, thread_id: str, username: str, stream_handler)
             print(f"Error al guardar mensaje del sistema en el historial local: {e}")
             pass
 
-        return respuesta_final
+        return respuesta_final, agente_ejecutado
     
     except Exception as e:
         print("Error crítico del Grafo/BD: ", e)
         traceback.print_exc() 
-        return "**Aviso del sistema:** Error crítico de conexión con la base de datos. Por favor, inténtalo más tarde."
+        return "**Aviso del sistema:** Error crítico de conexión con la base de datos. Por favor, inténtalo más tarde.", "Educador"
