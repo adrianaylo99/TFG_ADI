@@ -6,13 +6,23 @@ from grafos.grafo_agentes import obtener_grafo
 # Instanciamos el grafo una sola vez
 app_grafo = obtener_grafo()
 
-# Busca o crea al usuario y devuelve su ID
-def login_usuario(username: str) -> str:
+def login_usuario(username: str, password_plain: str) -> str:
     try:
-        return db_manager.obtener_o_crear_usuario(username)
+        return db_manager.iniciar_sesion_usuario(username, password_plain)
+    except ValueError as e:
+        raise e
     except Exception as e:
         print(f"Error BD login: {e}")
-        raise e 
+        raise Exception("Error de servidor")
+
+def registrar_usuario(username: str, password_plain: str) -> str:
+    try:
+        return db_manager.registrar_usuario(username, password_plain)
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        print(f"Error BD registro: {e}")
+        raise Exception("Error de servidor")
 
 # Devuelve la lista de chats del usuario
 def obtener_chats(user_id: str) -> list:

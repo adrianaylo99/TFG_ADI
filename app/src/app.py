@@ -64,14 +64,26 @@ if not st.session_state.logged_in:
     
     # Formulario sencillo
     username_input = st.text_input("Nombre de usuario:", placeholder="Ej: Adrian")
+    password_input = st.text_input("Contraseña:", type="password")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        btn_login = st.button("Iniciar sesión", use_container_width=True)
+    with col2:
+        btn_register = st.button("Registro", use_container_width=True)
     
-    if st.button("Entrar al Chat"):
+    if btn_login or btn_register:
         # Si tenemos una cadena vacía después de hacer strip() no es un nombre válido
         nombre = username_input.strip()
-        if nombre:
+        if nombre and password_input:
             try:
+                if btn_login:
+                    user_id = controlador.login_usuario(nombre, password_input)
+                else:
+                    user_id = controlador.registrar_usuario(nombre, password_input)
+
                 st.session_state.username = nombre
-                st.session_state.user_id = controlador.login_usuario(nombre)
+                st.session_state.user_id = user_id
 
                 chats_existentes = controlador.obtener_chats(st.session_state.user_id)
                 if not chats_existentes:
@@ -82,11 +94,13 @@ if not st.session_state.logged_in:
 
                 st.session_state.logged_in = True
                 st.rerun() # Recarga la página para ir al chat
+            except ValueError as ve:
+                st.error(f"{ve}")
             except Exception as e:
                 print(f"Error crítico en BD al iniciar sesión: {e}")
                 st.error("Error de conexión con el servidor. Inténtalo de nuevo más tarde.")
         else:
-            st.warning("Por favor, introduce un nombre válido.")
+            st.warning("Por favor, introduce la información de inicio de sesión para todos los campos.")
 
 # Pantalla principal del chat
 else:

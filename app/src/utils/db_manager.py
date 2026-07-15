@@ -1,5 +1,6 @@
 import os
 import uuid
+import bcrypt
 from dotenv import load_dotenv
 from datetime import datetime
 from psycopg_pool import ConnectionPool
@@ -33,7 +34,8 @@ def inicializar_base_datos():
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id SERIAL PRIMARY KEY,
-                    username VARCHAR(255) UNIQUE NOT NULL
+                    username VARCHAR(255) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL
                 )
             ''')
             cursor.execute('''
@@ -59,22 +61,42 @@ try:
 except Exception as e:
     print(f"No se ha podido inicializar la BD al arrancar: {e}")
 
-# Función para gestionar los usuarios
-# La idea general es crear la tabla de usuarios si no existe ya, buscar el usuario por su nombre
-# y devolver el id. Si no existe el usuario, se inserta en la tabla y se devuelve el id
-# El id se genera incrementando el último creado y el nombre de usuario es único
-def obtener_o_crear_usuario(username: str) -> str:
+# Inicio de sesión
+def iniciar_sesion_usuario(username: str, password_plain: str) -> str:
+    with pool.connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute('SELECT id, password_hash FROM usuarios WHERE username = %s', (username,))
+            row = cursor.fetchone()
+
+            if row:
+                user_id = str(row[0])
+                stored_hash = row[1]
+                
+                if bcrypt.checkpw(password_plain.encode('utf-8'), stored_hash.encode('utf-8')):
+                    return user_id
+                else:
+                    raise ValueError("Contraseña incorrecta.")
+            else:
+                raise ValueError("Usuario no registrado.")
+
+# Registro de usuarios
+def registrar_usuario(username: str, password_plain: str) -> str:
     with pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute('SELECT id FROM usuarios WHERE username = %s', (username,))
-            row = cursor.fetchone()
-            if row:
-                return str(row[0])
-            else:
-                cursor.execute('INSERT INTO usuarios (username) VALUES (%s) RETURNING id', (username,))
-                nuevo_id = cursor.fetchone()[0]
-                conn.commit()
-                return str(nuevo_id)
+            if cursor.fetchone():
+                raise ValueError("Usuario ya registrado.")
+            
+            hashed_bytes = bcrypt.hashpw(password_plain.encode('utf-8'), bcrypt.gensalt())
+            hashed_str = hashed_bytes.decode('utf-8')
+            
+            cursor.execute(
+                'INSERT INTO usuarios (username, password_hash) VALUES (%s, %s) RETURNING id', 
+                (username, hashed_str)
+            )
+            nuevo_id = cursor.fetchone()[0]
+            conn.commit()
+            return str(nuevo_id)
 
 # Crea un nuevo hilo en la bd y devuelve el thread_id
 def crear_nuevo_chat(user_id: str, titulo: str = "Nueva conversación") -> str:
